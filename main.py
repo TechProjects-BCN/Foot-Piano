@@ -4,17 +4,23 @@ import serial
 import numpy as np
 import sounddevice as sd
 import time
+import pygame
 
-#         A3      B3       C4      D4      E4      F4    G4
-notes = [156.82, 139.71, 131.87, 117.48, 104.66, 98.79, 88.01]
-atten = 0.5
-sps = 44100
+pygame.init()
+clock = pygame.time.Clock()
+status = [0, 0, 0, 0, 0, 0, 0]
+# Sounds
 
-
-def new_sine_wave(freq_hz, duration_s):
-    each_sample_number = np.arange(duration_s * sps)
-    waveform = np.sin(2 * np.pi * each_sample_number * freq_hz / sps)
-    return waveform * atten
+notes= {
+    6:pygame.mixer.Sound("A.wav"),
+    1:pygame.mixer.Sound("B.wav"),
+    5:pygame.mixer.Sound("C.wav"),
+    0:pygame.mixer.Sound("D.wav"),
+    7:pygame.mixer.Sound("E.wav"),
+    4:pygame.mixer.Sound("F.wav"),
+    2:pygame.mixer.Sound("G.wav"),
+    3:pygame.mixer.Sound("F#.wav")
+} 
 
 data = []
 
@@ -25,32 +31,24 @@ class Main:
         self.to_play = []
     def server_arduino(self):
         while True:
-            if self.to_play != []:
-                self.to_play = []
             _received = ard.readline()
             data = _received.split()
-            #print(data)
+            print(data)
             for index, sensor in enumerate(data):
-                try:
-                    #print(f"Sensor {index} is {sensor}")
-                    if int(sensor) == 1:
-                        self.to_play.append(new_sine_wave(freq_hz=notes[index], duration_s=1))
-                        print(f"Playing note with frequency {notes[index]} in index {index} ")
-                except:
-                    pass
-            time.sleep(0.3)
+                    if int(sensor) == 1 and status[index] != 1:
+                        status[index] = 1
+                        self.to_play.append(notes[index])
+                    elif int(sensor) == 0:
+                        status[index] = 0
+            time.sleep(0.05)
 
-    def server_tone(self): 
-        _wave = np.sin(0)
+    def server_tone(self):
         while True:    
-            print(self.to_play)
-            for wave in self.to_play:
-                _wave = _wave + wave
-            _wave = _wave / len(self.to_play)
-            #print("Wave : ", _wave)
-            sd.play(_wave, sps)
-            time.sleep(0.3)
-            _wave = np.sin(0)
+            #print(self.to_play)
+            for index, note in enumerate(self.to_play):
+                pygame.mixer.Channel(index).play(note)
+            self.to_play = []
+            time.sleep(0.05)
                 
 
 _main = Main()
